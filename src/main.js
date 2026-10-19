@@ -45,15 +45,11 @@ document.addEventListener('click', (e) => {
   if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), 1600);
 });
 
-/* bar: light or dark depending on what's under it; active section link */
+/* bar: active section link */
 {
   const links = $$('.bar__nav a');
   const targets = links.map((a) => $(a.getAttribute('href')));
-  let light = null;
   const update = () => {
-    const under = document.elementsFromPoint(innerWidth / 2, 28).find((el) => !bar.contains(el) && el.closest('.light, .dark'));
-    const isLight = !!under?.closest('.light');
-    if (isLight !== light) bar.classList.toggle('is-light', (light = isLight));
     const mid = innerHeight * 0.4;
     targets.forEach((t, i) => {
       const r = t.getBoundingClientRect();
@@ -61,7 +57,6 @@ document.addEventListener('click', (e) => {
     });
   };
   lenis ? lenis.on('scroll', update) : addEventListener('scroll', update, { passive: true });
-  addEventListener('load', update);
   update();
 }
 
@@ -118,23 +113,25 @@ function buildKeys() {
 
   const heroY = hero.offsetHeight * 0.6;
   const whyY = top('[data-k="why"]') - vh * 0.1;
-  const risksY = top('[data-k="risks"]') - vh * 0.3;
+  const risksY = top('[data-k="risks"]') - vh * 0.62; // gone before the tiles fill the view
   const tourSlot = (i) => (narrow ? 'tour-l' : i % 2 === 0 ? 'tour-l' : 'tour-r');
   const tourAt = (i) => tourTop + tourLen * (i * 0.25 + 0.125);
   const formY = top('[data-k="form"]') + vh * 0.15;
   const footY = top('[data-k="foot"]');
 
   keys = [
-    at(0, 'hero', { rx: -0.06 }, 0.96),
-    [heroY, P({ rx: 0.12, ry: -0.45, rz: 0.04, x: 0, y: 0, s: centreS, gx: 50, gy: 52, go: 0.9 })],
+    // hero: large, turned to show the printer side, tilted into the copy
+    at(0, 'hero', narrow ? { rx: -0.04, ry: -0.35, rz: 0.06 } : { rx: 0.06, ry: -0.62, rz: 0.16 }, 1),
+    at(heroY, 'hero', { rx: 0.1, ry: -0.2, rz: 0.04, go: 0.8 }, 1),
     narrow
       ? [whyY, P({ rx: 0.1, ry: -1, y: 1.2, s: centreS * 0.6, op: 0, go: 0.2 })]
       : at(whyY, 'why', { rx: 0.1, ry: -1, rz: 0.12, go: 0.55 }),
     narrow
       ? [risksY, P({ y: 1.4, s: centreS * 0.5, op: 0, go: 0 })]
       : at(risksY, 'why', { rx: 0.1, ry: -1.3, rz: 0.12, op: 0, go: 0 }),
-    rise(at(tourTop - vh * 0.4, tourSlot(0), { ry: 1.1, op: 0, go: 0 })),
-    at(tourTop - vh * 0.05, tourSlot(0), { rx: 0.05, ry: 0.3 }),
+    // appears only once the tour is pinned and the intro heading has left the screen
+    rise(at(tourTop - vh * 0.02, tourSlot(0), { ry: 1.1, op: 0, go: 0 })),
+    at(tourTop + tourLen * 0.07, tourSlot(0), { rx: 0.05, ry: 0.3 }),
     at(tourAt(0), tourSlot(0), { rx: 0.05, ry: 0.6, rz: -0.08 }),
     at(tourAt(1), tourSlot(1), { rx: 0.18, ry: -0.75, rz: 0.06 }),
     at(tourAt(2), tourSlot(2), { rx: 0.5, ry: -2.6, rz: 0.1 }),
@@ -168,9 +165,14 @@ const cur = P({ op: 1 });
 let last = [];
 const glow = $('[data-glow]');
 const stage = $('[data-stage]');
-function drive(dt = 0.016) {
+let lastT = 0;
+function drive() {
   const t = target(scrollY);
-  const k = reduced ? 1 : Math.min(1, dt * 5.5);
+  // time-based easing (≈180 ms half-life) so a slow or throttled device catches up just as fast
+  const now = performance.now();
+  const dt = lastT ? Math.min((now - lastT) / 1000, 1) : 1;
+  lastT = now;
+  const k = reduced ? 1 : 1 - Math.exp(-dt * 3.8);
   FIELDS.forEach((f) => (cur[f] += (t[f] - cur[f]) * k));
   // write only what changed; the first frames fade the device in from 0
   const css = [cur.op.toFixed(3), `${cur.gx.toFixed(2)}%`, `${cur.gy.toFixed(2)}%`, cur.go.toFixed(3)];
@@ -214,7 +216,7 @@ async function terminal() {
       drive,
       interactive: false,
       pointerTarget: window,
-      look: 'studio',
+      look: 'light',
       distance: 6.2,
     });
   } catch (err) {

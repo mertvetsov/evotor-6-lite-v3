@@ -60,6 +60,18 @@ export async function mountTerminal(stage, {
   const rim = new DirectionalLight(new Color('#ffb36b'), 2.2);
   rim.position.set(1.5, 2, -3);
   scene.add(key, fill, rim);
+  if (look === 'light') {
+    // bright product-shot lighting for a pale page: big soft key, gentle peach
+    // rim and a lavender edge so the grey body separates from the background
+    key.color.set('#ffffff'); key.intensity = 2.2; key.position.set(1.2, 3.5, 3.5);
+    fill.color.set('#f1f3ff'); fill.intensity = 1.4; fill.position.set(-2.5, 0.8, 4);
+    rim.color.set('#ff9a66'); rim.intensity = 2.4; rim.position.set(-3, 1.5, -2.5);
+    const edge = new DirectionalLight(new Color('#b9b2ff'), 1.8);
+    edge.position.set(3.2, 2, -2);
+    scene.add(edge);
+    scene.environmentIntensity = 1.0;
+    renderer.toneMappingExposure = 1.02;
+  }
   if (look === 'studio') {
     // product-shot lighting for a dark stage: a soft white key from above-front,
     // an orange rim from behind-left and a cool edge from behind-right

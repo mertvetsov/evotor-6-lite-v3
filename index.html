@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>«Эвотор 6 lite» по акции «Касса за кассу»</title>
   <meta name="description" content="Обменяйте старую кассу на новый «Эвотор 6 lite» и сэкономьте 17 500 ₽. С 1 июля 2026 года кассы без модуля ТС ПИоТ нельзя использовать для продажи маркированных товаров." />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#fbf9f6" />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23f05023'/%3E%3Cpath d='M10 11.5a7 7 0 1 1 0 9h5.5' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <!-- first paint: keep the page hidden until the main stylesheet arrives (it sets --css-ready),
+       so the inline logo and links never flash unstyled; order-independent by design -->
+  <style>html{background:#fbf9f6;color:#16181d}body{visibility:var(--css-ready,hidden)}</style>
+  <noscript><style>body{visibility:visible}</style></noscript>
   <script type="module" src="./src/main.js"></script>
 </head>
 <body>
@@ -31,7 +35,7 @@
         <a href="#features">Функционал</a>
         <a href="#steps">Как получить</a>
       </nav>
-      <a class="pill pill--sm" href="#form">Оставить заявку</a>
+      <a class="pill pill--sm pill--ink" href="#form">Оставить заявку</a>
       <button class="bar__burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu" data-burger><span></span><span></span></button>
     </div>
     <nav class="menu" id="menu" aria-label="Разделы страницы" data-menu>
@@ -43,25 +47,26 @@
   </header>
 
   <main id="main">
-    <!-- HERO -->
-    <section class="hero dark" id="top" data-k="hero">
-      <div class="hero__copy">
-        <h1 class="hero__title">
-          <span class="rv">Обменяйте старую кассу</span>
-          <span class="rv">на новый «Эвотор&nbsp;6&nbsp;lite»</span>
-          <span class="rv hero__accent">и сэкономьте <span data-count="17500">17&nbsp;500&nbsp;₽</span></span>
-        </h1>
-        <p class="hero__lead rv">С 1 июля 2026 года кассы без модуля ТС ПИоТ нельзя использовать для продажи маркированных товаров. Успейте сменить кассу выгодно.</p>
-        <div class="hero__actions rv">
-          <a class="pill" href="#form">Оставить заявку</a>
-          <a class="link" href="#steps">Как получить <span aria-hidden="true">›</span></a>
+    <!-- HERO: copy on the left, the device large on the right, bleeding off the frame -->
+    <section class="hero" id="top" data-k="hero">
+      <div class="hero__grid">
+        <div class="hero__copy">
+          <h1 class="hero__title">
+            <span class="rv">Обменяйте старую кассу на&nbsp;новый «Эвотор&nbsp;6&nbsp;lite»</span>
+            <span class="rv hero__accent">и сэкономьте <span class="nowrap" data-count="17500">17&nbsp;500&nbsp;₽</span></span>
+          </h1>
+          <p class="hero__lead rv">С 1 июля 2026 года кассы без модуля ТС ПИоТ нельзя использовать для продажи маркированных товаров. Успейте сменить кассу выгодно.</p>
+          <div class="hero__actions rv">
+            <a class="pill" href="#form">Оставить заявку</a>
+            <a class="link" href="#steps">Как получить <span aria-hidden="true">›</span></a>
+          </div>
         </div>
+        <div class="hero__room" aria-hidden="true" data-slot="hero"></div>
       </div>
-      <div class="hero__room" aria-hidden="true" data-slot="hero"></div>
     </section>
 
     <!-- WHY -->
-    <section class="why dark" id="why" data-k="why">
+    <section class="why clear" id="why" data-k="why">
       <div class="why__slot" aria-hidden="true" data-slot="why"></div>
       <div class="wrap">
         <header class="head">
@@ -89,7 +94,7 @@
     </section>
 
     <!-- EXCHANGE -->
-    <section class="exchange light" id="exchange">
+    <section class="exchange tint" id="exchange">
       <div class="wrap">
         <header class="head">
           <h2 class="h2" data-reveal>Отдайте старую кассу — получите «Эвотор&nbsp;6&nbsp;lite»</h2>
@@ -122,7 +127,7 @@
     </section>
 
     <!-- FEATURES: intro, then a pinned stage where the terminal turns for each spec -->
-    <section class="features dark" id="features">
+    <section class="features clear" id="features">
       <div class="features__intro" data-k="features">
         <h2 class="display" data-reveal>«Эвотор&nbsp;6&nbsp;lite» готова к новым требованиям</h2>
         <p class="tagline" data-reveal>Та самая. Легендарная. Обновлённая</p>
@@ -155,7 +160,7 @@
     </section>
 
     <!-- FREE SETUP -->
-    <section class="setup light">
+    <section class="setup tint">
       <div class="wrap">
         <h2 class="display display--dark" data-reveal>Настройка ТС ПИоТ и подготовка к маркировке — бесплатно</h2>
         <ul class="bento bento--checks">
@@ -168,7 +173,7 @@
     </section>
 
     <!-- STEPS -->
-    <section class="steps light" id="steps">
+    <section class="steps tint" id="steps">
       <div class="wrap">
         <header class="head">
           <h2 class="h2" data-reveal>Получите «Эвотор&nbsp;6&nbsp;lite» за четыре шага</h2>
@@ -187,7 +192,7 @@
     </section>
 
     <!-- FORM -->
-    <section class="apply dark" id="form" data-k="form">
+    <section class="apply clear" id="form" data-k="form">
       <div class="wrap apply__grid">
         <div class="apply__room" aria-hidden="true" data-slot="form"></div>
         <div class="apply__panel">
@@ -213,7 +218,7 @@
     </section>
   </main>
 
-  <footer class="foot light" data-k="foot">
+  <footer class="foot tint" data-k="foot">
     <div class="wrap foot__grid">
       <div>
         <a class="foot__logo" href="#top" aria-label="Эвотор — в начало"><!--icon:logo--></a>
