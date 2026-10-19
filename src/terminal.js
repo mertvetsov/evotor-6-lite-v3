@@ -283,15 +283,24 @@ export async function mountTerminal(stage, {
   if (import.meta.env?.DEV) window.__term = { scene, rig, oriented, model, camera, renderer, receipt, textures, screenMat, uniforms, cursor, sheen, moveCursorLight, setSheenAmount: (v) => (sheenAmount = v), applyDay: (...a) => applyDay(...a) }; // dev-only handle for checks
 
   /* ------------------------------------------------ sizing */
+  // Resizing a WebGL canvas wipes its buffer. iOS Safari resizes the fixed stage on every frame
+  // while its toolbar collapses, and the ResizeObserver fires after we have drawn but before the
+  // frame is shown — so the device blinked out on alternate frames. Skip no-op resizes and redraw
+  // straight away after a real one, so an empty buffer never reaches the screen.
+  let drawnOnce = false;
+  let sizeKey = '';
   const resize = () => {
     const { width, height } = stage.getBoundingClientRect();
     if (!width || !height) return;
+    const key = `${Math.round(width * dpr)}x${Math.round(height * dpr)}`;
+    if (key === sizeKey) return;
+    sizeKey = key;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     // keep the whole device in frame on narrow/tall stages
     camera.position.z = camera.aspect < 0.9 ? distance / Math.max(camera.aspect, 0.6) * 0.9 : distance;
     camera.updateProjectionMatrix();
-
+    if (drawnOnce) renderer.render(scene, camera);
   };
   new ResizeObserver(resize).observe(stage);
   resize();
@@ -530,6 +539,7 @@ export async function mountTerminal(stage, {
   }
   state.intro = settle;
   renderer.render(scene, camera);
+  drawnOnce = true;
   stage.classList.add('is-3d');
 
   return {
@@ -549,6 +559,7 @@ export async function mountTerminal(stage, {
       stop();
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
+      sizeKey = ''; // the next real resize must apply again
       camera.aspect = width / height;
       camera.position.z = distance;
       camera.updateProjectionMatrix();
