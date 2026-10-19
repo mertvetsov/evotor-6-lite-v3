@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- dev-only: bakes the static fallback posters from the real 3D model. Not part of the build. -->
+<html lang="ru"><head><meta charset="utf-8" /><title>poster capture</title>
+<style>body{margin:0;background:#fbf9f6}#stage{position:relative;width:900px;height:1200px}#stage canvas{width:100%;height:100%}</style>
+</head><body><div id="stage"><canvas></canvas></div>
+<script type="module">
+import { mountTerminal } from './src/terminal.js';
+const POSES = {
+  hero:  { rx: 0.06, ry: -0.62, rz: 0.16, screen: 0 },
+  why:   { rx: 0.10, ry: -1.00, rz: 0.12, screen: 1 },
+  tour1: { rx: 0.05, ry: 0.60,  rz: -0.08, screen: 0 },
+  tour2: { rx: 0.18, ry: -0.75, rz: 0.06, screen: 1 },
+  tour3: { rx: 0.50, ry: -2.60, rz: 0.10, screen: 0 },
+  tour4: { rx: 0.08, ry: -5.95, rz: -0.05, screen: 1 },
+  form:  { rx: 0.08, ry: 0.75,  rz: -0.05, screen: 2 },
+};
+const api = await mountTerminal(document.getElementById('stage'), {
+  reduced: true, interactive: false, look: 'light', assetBase: './',
+  drive: () => ({ rx: 0, ry: 0, rz: 0, x: 0, y: 0, s: 1 }),
+});
+window.capture = async () => {
+  const done = [];
+  for (const [name, p] of Object.entries(POSES)) {
+    const url = api.snapshot({ ...p, s: 1.02, width: 900, height: 1200 });
+    const r = await fetch('http://127.0.0.1:5199/save?name=' + name, { method: 'POST', body: url });
+    done.push(name + ':' + r.status);
+  }
+  return done.join(' ');
+};
+window.captureReady = true;
+</script></body></html>

@@ -25,10 +25,12 @@ const bar = $('[data-bar]');
 const burger = $('[data-burger]');
 const setMenu = (open) => {
   bar.classList.toggle('is-open', open);
+  open ? lenis?.stop() : lenis?.start();
   burger.setAttribute('aria-expanded', String(open));
   burger.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
 };
 burger.addEventListener('click', () => setMenu(!bar.classList.contains('is-open')));
+bar.addEventListener('click', (e) => { if (e.target === bar) setMenu(false); }); // tap on the dimmed area
 addEventListener('keydown', (e) => e.key === 'Escape' && setMenu(false));
 
 document.addEventListener('click', (e) => {
@@ -38,9 +40,10 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   if (hash.length < 2) return;
   setMenu(false);
-  const target = $(hash);
+  // «Оставить заявку» lands on the form panel itself, not the device above it
+  const target = hash === '#form' ? $('.apply__panel') : $(hash);
   if (!target) return;
-  if (lenis) lenis.scrollTo(target, { offset: hash === '#top' ? 0 : -56, duration: 1.6 });
+  if (lenis) lenis.scrollTo(target, { offset: hash === '#top' ? 0 : hash === '#form' ? -76 : -56, duration: 1.6 });
   else target.scrollIntoView({ behavior: 'smooth' });
   if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), 1600);
 });
@@ -189,6 +192,7 @@ function tourWatch() {
   const tour = $('[data-tour]');
   const specs = $$('[data-spec]', tour);
   const dots = $$('.tour__dots span', tour);
+  const posters = $$('.poster--tour', tour);
   let active = -1;
   const update = () => {
     const r = tour.getBoundingClientRect();
@@ -199,6 +203,7 @@ function tourWatch() {
     active = i;
     specs.forEach((s, j) => s.classList.toggle('is-on', j === i));
     dots.forEach((d, j) => d.classList.toggle('is-on', j === i));
+    posters.forEach((p) => p.classList.toggle('is-on', +p.dataset.i === i));
   };
   lenis ? lenis.on('scroll', update) : addEventListener('scroll', update, { passive: true });
   update();
@@ -206,6 +211,9 @@ function tourWatch() {
 
 /* ------------------------------------------------------------------ 3D */
 async function terminal() {
+  const root = document.documentElement;
+  // reduced motion: keep the static posters instead of a scroll-driven device
+  if (reduced) { root.classList.add('no-3d'); return; }
   buildKeys();
   Object.assign(cur, target(scrollY), { op: 0 });
   try {
@@ -219,8 +227,11 @@ async function terminal() {
       look: 'light',
       distance: 6.2,
     });
+    root.classList.add('has-3d');
   } catch (err) {
-    console.warn('[terminal] 3D unavailable:', err);
+    console.warn('[terminal] 3D unavailable, keeping the static posters:', err);
+    root.classList.add('no-3d');
+    return;
   }
   let t;
   const rebuild = () => { clearTimeout(t); t = setTimeout(buildKeys, 120); };
@@ -325,8 +336,9 @@ function form() {
     if (!d.startsWith('7')) d = '7' + d;
     d = d.slice(0, 11);
     const p = [d.slice(1, 4), d.slice(4, 7), d.slice(7, 9), d.slice(9, 11)];
+    // +7 (900) 123-45-67 — the same shape as the field's example
     let out = '+7';
-    if (p[0]) out += ` ${p[0]}`;
+    if (p[0]) out += ` (${p[0]}${p[0].length === 3 ? ')' : ''}`;
     if (p[1]) out += ` ${p[1]}`;
     if (p[2]) out += `-${p[2]}`;
     if (p[3]) out += `-${p[3]}`;
@@ -340,7 +352,7 @@ function form() {
   const rules = {
     name: (v) => (v.trim().length >= 2 ? '' : 'Укажите имя'),
     city: (v) => (v.trim().length >= 2 ? '' : 'Укажите город'),
-    phone: (v) => (v.replace(/\D/g, '').length === 11 ? '' : 'Нужно 11 цифр'),
+    phone: (v) => (v.replace(/\D/g, '').length === 11 ? '' : 'Введите номер полностью, например +7 (900) 123-45-67'),
     inn: (v) => (/^\d{10}$|^\d{12}$/.test(v) ? '' : 'ИНН — 10 или 12 цифр'),
   };
   const check = (input) => {
@@ -358,18 +370,30 @@ function form() {
     i.addEventListener('input', () => i.closest('.is-error') && check(i));
   });
   const pd = $('[name="pd"]', f);
-  pd.addEventListener('change', () => pd.closest('.box').classList.remove('is-error'));
+  const pdErr = $('#f-pd-err', f);
+  const setConsent = (ok) => {
+    pd.closest('.box').classList.toggle('is-error', !ok);
+    pdErr.textContent = ok ? '' : 'Отметьте согласие, чтобы отправить заявку';
+    pd.setAttribute('aria-invalid', ok ? 'false' : 'true');
+  };
+  pd.addEventListener('change', () => pd.checked && setConsent(true));
+  const labelOf = (input) => $(`label[for="${input.id}"]`, f)?.firstChild.textContent.trim() || input.name;
 
   f.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const ok = $$('.field input', f).map(check).every(Boolean);
+    const invalid = $$('.field input', f).filter((i) => !check(i));
     const agreed = pd.checked;
-    pd.closest('.box').classList.toggle('is-error', !agreed);
-    if (!ok || !agreed) {
-      status.textContent = !agreed && ok ? 'Подтвердите согласие на обработку персональных данных' : 'Проверьте отмеченные поля';
-      $('.is-error input', f)?.focus();
+    setConsent(agreed);
+    if (invalid.length || !agreed) {
+      // one polite summary instead of a burst of alerts; focus the first problem
+      const names = invalid.map(labelOf);
+      if (!agreed) names.push('согласие на обработку данных');
+      status.textContent = `Проверьте: ${names.join(', ')}`;
+      status.classList.add('is-error');
+      (invalid[0] || pd).focus();
       return;
     }
+    status.classList.remove('is-error');
     submit.disabled = true;
     label.textContent = 'Проверяем…';
     status.textContent = '';

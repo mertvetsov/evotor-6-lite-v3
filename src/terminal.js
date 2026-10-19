@@ -369,6 +369,25 @@ export async function mountTerminal(stage, {
   state.intro = settle;
   renderer.render(scene, camera);
   stage.classList.add('is-3d');
+
+  return {
+    /** Render one still in a given pose (used to bake the static fallback posters). */
+    snapshot({ rx = 0, ry = 0, rz = 0, s = 1, screen = 0, width = 900, height = 1200 } = {}) {
+      stop();
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.position.z = distance;
+      camera.updateProjectionMatrix();
+      screenMat.emissiveMap = textures[screen % textures.length];
+      uniforms.uProgress.value = 0;
+      rig.rotation.set(rx, ry, rz, 'YXZ');
+      rig.position.set(0, 0, 0);
+      rig.scale.setScalar(s);
+      renderer.render(scene, camera);
+      return canvas.toDataURL('image/png');
+    },
+  };
 }
 
 /** Bring an angle back to the nearest equivalent of 0 so the spring takes the short way. */
