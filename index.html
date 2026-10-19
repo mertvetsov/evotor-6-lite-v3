@@ -20,6 +20,8 @@
   <!-- fixed studio: glow + the one WebGL stage the whole page choreographs -->
   <div class="studio" aria-hidden="true">
     <div class="studio__glow" data-glow></div>
+    <div class="studio__day" data-day></div>
+    <div class="studio__flash" data-flash></div>
     <div class="studio__stage" data-stage>
       <canvas class="studio__canvas"></canvas>
     </div>
@@ -113,7 +115,9 @@
               <p class="tile__big">17&nbsp;500&nbsp;₽</p>
               <p class="tile__text">Взамен старой кассы вы получите «Эвотор 6 lite», приложение «Маркировка» и подписку на модуль ТС&nbsp;ПИоТ на 12 месяцев за <strong class="tile__price">24&nbsp;900&nbsp;₽</strong></p>
             </div>
-            <img class="tile__photo" src="./img/hero-hand.webp" srcset="./img/hero-hand-640.webp 640w, ./img/hero-hand.webp 1100w" sizes="(min-width: 900px) 34vw, 80vw" width="1100" height="1100" alt="«Эвотор 6 lite» в руке" loading="lazy" decoding="async" data-parallax-img />
+            <div class="tile__hand" data-hand>
+              <img class="tile__photo" src="./img/hero-hand.webp" srcset="./img/hero-hand-640.webp 640w, ./img/hero-hand.webp 1100w" sizes="(min-width: 1025px) 50vw, 90vw" width="1100" height="1100" alt="«Эвотор 6 lite» в руке" loading="lazy" decoding="async" />
+            </div>
           </li>
           <li class="tile tile--paper" data-tile>
             <h3 class="tile__title">Обновите оборудование</h3>
@@ -195,7 +199,7 @@
     <!-- FORM -->
     <section class="apply clear" id="form" data-k="form">
       <div class="wrap apply__grid">
-        <div class="apply__room" aria-hidden="true" data-slot="form"><img class="poster" src="./img/poster/form.webp" srcset="./img/poster/form-540.webp 540w, ./img/poster/form.webp 900w" sizes="(max-width: 760px) 80vw, 40vw" width="900" height="1200" alt="" loading="lazy" decoding="async" /></div>
+        <div class="apply__room" aria-hidden="true" data-slot="form"><img class="poster poster--wait" src="./img/poster/formwait.webp" srcset="./img/poster/formwait-540.webp 540w, ./img/poster/formwait.webp 900w" sizes="(max-width: 760px) 80vw, 40vw" width="900" height="1200" alt="" loading="lazy" decoding="async" /><img class="poster poster--done" src="./img/poster/form.webp" srcset="./img/poster/form-540.webp 540w, ./img/poster/form.webp 900w" sizes="(max-width: 760px) 80vw, 40vw" width="900" height="1200" alt="" loading="lazy" decoding="async" /></div>
         <div class="apply__panel">
           <h2 class="h2" data-reveal>Ваш бизнес заслуживает перейти на&nbsp;«Эвотор&nbsp;6&nbsp;lite»</h2>
           <p class="apply__lead" data-reveal>Заполните заявку — и мы поможем обменять кассу</p>

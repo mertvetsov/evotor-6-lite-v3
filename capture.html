@@ -11,8 +11,9 @@ const POSES = {
   tour1: { rx: 0.05, ry: 0.60,  rz: -0.08, screen: 0 },
   tour2: { rx: 0.18, ry: -0.75, rz: 0.06, screen: 1 },
   tour3: { rx: 0.50, ry: -2.60, rz: 0.10, screen: 0 },
-  tour4: { rx: 0.08, ry: -5.95, rz: -0.05, screen: 1 },
+  tour4: { rx: 0.08, ry: -5.95, rz: -0.05, screen: 2 },
   form:  { rx: 0.08, ry: 0.75,  rz: -0.05, screen: 2 },
+  formwait: { rx: 0.08, ry: 0.75, rz: -0.05, screen: 1 },
 };
 const api = await mountTerminal(document.getElementById('stage'), {
   reduced: true, interactive: false, look: 'light', assetBase: './',

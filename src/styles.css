@@ -87,7 +87,30 @@ body {
 .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; transition: opacity 0.8s var(--ease), transform 1s var(--ease); }
 .poster--tour { opacity: 0; transform: scale(0.97); }
 .poster--tour.is-on { opacity: 1; transform: none; }
-.has-3d .poster { opacity: 0; transform: scale(0.98); }
+.poster--done { opacity: 0; }
+.lead-sent .poster--wait { opacity: 0; }
+.lead-sent .poster--done { opacity: 1; }
+html.has-3d .poster { opacity: 0; transform: scale(0.98); }
+/* green light from the terminal's screen spilling into the studio when the lead "pays" */
+.studio__day {
+  --day-a: 255, 176, 102; --day-b: 255, 210, 122;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40vmax 32vmax at var(--gx, 50%) var(--gy, 50%), rgba(var(--day-a), 0.6), rgba(var(--day-a), 0) 70%),
+    radial-gradient(28vmax 22vmax at calc(var(--gx, 50%) + 14%) calc(var(--gy, 50%) - 16%), rgba(var(--day-b), 0.55), rgba(var(--day-b), 0) 70%);
+}
+.studio__flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(30vmax 24vmax at var(--gx, 30%) var(--gy, 55%), rgba(70, 230, 150, 0.42), rgba(70, 230, 150, 0) 70%),
+    radial-gradient(18vmax 14vmax at var(--gx, 30%) var(--gy, 55%), rgba(190, 255, 220, 0.5), rgba(190, 255, 220, 0) 70%);
+  pointer-events: none;
+}
 
 /* --------------------------------------------------------------- type */
 .display {
@@ -299,7 +322,7 @@ main, .foot { position: relative; z-index: 1; }
   grid-template-columns: 1.1fr 0.9fr;
   align-items: end;
   gap: 24px;
-  min-height: clamp(420px, 40vw, 580px);
+  min-height: clamp(440px, 42vw, 620px);
   padding-bottom: 0;
   background:
     radial-gradient(60% 90% at 85% 100%, rgba(255, 160, 110, 0.75), rgba(255, 160, 110, 0) 70%),
@@ -322,7 +345,19 @@ main, .foot { position: relative; z-index: 1; }
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
-.tile__photo { align-self: end; width: 100%; max-width: 520px; height: auto; margin: -40px 0 0 auto; filter: drop-shadow(0 30px 40px rgba(120, 50, 20, 0.25)); will-change: transform; }
+/* the hand holds the terminal up from the bottom edge; only the wrist is cut by the tile */
+.tile__hand {
+  position: absolute;
+  top: 5%;
+  bottom: -20px;
+  right: 4%;
+  aspect-ratio: 1;
+  max-width: 52%;
+  transform-origin: 85% 100%; /* pivots at the wrist */
+  will-change: transform;
+  pointer-events: none;
+}
+.tile__photo { display: block; width: 100%; height: 100%; object-fit: contain; object-position: right bottom; filter: drop-shadow(0 30px 40px rgba(120, 50, 20, 0.25)); }
 
 /* features */
 .features { padding-top: var(--air); }
@@ -508,8 +543,6 @@ main, .foot { position: relative; z-index: 1; }
   .why .marker { order: 0; }
   .bento--risks { grid-template-columns: 1fr 1fr; }
   .tile--fine { grid-column: 1 / -1; grid-row: auto; min-height: 340px; }
-  .tile--save { grid-template-columns: 1fr; }
-  .tile__photo { max-width: 420px; margin: -24px auto 0; }
   .facts { grid-template-columns: repeat(2, 1fr); }
   .fact:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
   .fact:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
@@ -525,6 +558,8 @@ main, .foot { position: relative; z-index: 1; }
 
 /* stacked layout — phones and portrait screens: the device below/above the copy */
 @media (max-width: 760px), (max-aspect-ratio: 9/10) {
+  .tile--save { grid-template-columns: 1fr; }
+  .tile__hand { position: relative; inset: auto; width: min(520px, 100%); max-width: none; margin: 0 -4% -32px auto; }
   .tour { height: 270vh; }
   .hero__grid { grid-template-columns: 1fr; align-items: start; gap: 0; padding-top: calc(60px + 3vh); }
   .hero__copy { padding-bottom: 0; text-align: left; }
@@ -539,6 +574,7 @@ main, .foot { position: relative; z-index: 1; }
 
 /* =============================================================== ≤ 640 */
 @media (max-width: 640px) {
+  .tile__hand { width: 112%; margin: -4px -10% -9% auto; }
   .bar__inner { gap: 12px; height: 56px; }
   .bar__logo svg { width: 78px; }
   .hero__title { font-size: clamp(32px, 9vw, 42px); }
