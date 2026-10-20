@@ -45,8 +45,8 @@ document.addEventListener('click', (e) => {
   if (!target) return;
   const offset = hash === '#top' ? 0 : hash === '#form' ? -76 : -56;
   if (!lenis) {
-    target.scrollIntoView({ behavior: 'smooth' });
-    if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), 1600);
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); // «уменьшить движение»: jump, don't glide
+    if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), reduced ? 0 : 1600);
     return;
   }
   // a long trip would fast-forward the whole 3D choreography (spins, screens, receipt, the day…):
@@ -60,11 +60,16 @@ document.addEventListener('click', (e) => {
     if (far) { snapDevice(); navigating = false; }
     if (hash === '#form') $('#form input')?.focus({ preventScroll: true });
   };
-  lenis.scrollTo(target, { offset, duration: 1.6, onComplete: arrive });
-  setTimeout(arrive, 1900); // in case the ride is interrupted by the visitor's own scrolling
+  const duration = rideTime(target.getBoundingClientRect().top + offset);
+  lenis.scrollTo(target, { offset, duration, onComplete: arrive });
+  setTimeout(arrive, duration * 1000 + 300); // in case the ride is interrupted by the visitor's own scrolling
 });
 
 let navigating = false;
+/** Smooth-scroll time that grows with the distance: a short hop is quick, a trip down the page takes longer. */
+function rideTime(distancePx) {
+  return Math.min(1.6, Math.max(0.6, 0.45 + (Math.abs(distancePx) / innerHeight) * 0.22));
+}
 let trips = 0;
 
 /* bar: active section link */
@@ -281,7 +286,7 @@ function tourWatch() {
   dots.forEach((dot, i) => dot.addEventListener('click', () => {
     const top = tour.getBoundingClientRect().top + scrollY;
     const y = top + (tour.offsetHeight - innerHeight) * (i * 0.25 + 0.125);
-    if (lenis) lenis.scrollTo(y, { duration: 1.1 });
+    if (lenis) lenis.scrollTo(y, { duration: rideTime(y - scrollY) });
     else scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
   }));
   const posters = $$('.poster--tour', tour);
@@ -366,8 +371,9 @@ function reveals() {
   if (reduced) { gsap.set([...rv, ...$$('[data-reveal]'), ...$$('[data-tile]')], { opacity: 1 }); return; }
 
   gsap.timeline({ defaults: { ease: EASE } })
-    .fromTo(rv, { opacity: 0, y: 40, filter: 'blur(12px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.1 }, 0.15)
-    .from('.bar__inner > *', { opacity: 0, y: -8, duration: 1, stagger: 0.04, clearProps: 'opacity,transform' }, 0.1)
+    // the headline is the first thing read: a short rise, no blur to read through
+    .fromTo(rv, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.08 }, 0.1)
+    .from('.bar__inner > *', { opacity: 0, y: -8, duration: 0.6, stagger: 0.04, clearProps: 'opacity,transform' }, 0.05)
     .from('.studio__glow', { opacity: 0, scale: 1.2, duration: 2.4, clearProps: 'opacity,scale' }, 0);
 
   const num = $('[data-count]');
@@ -383,17 +389,19 @@ function reveals() {
     scrollTrigger: { trigger: '.hero', start: 'top top', end: '45% top', scrub: true },
   });
 
+  // scroll reveals: shorter, and the soft blur only where it is cheap (desktop); phones get a plain rise
+  const soft = matchMedia('(hover: hover) and (pointer: fine)').matches;
   $$('[data-reveal]').forEach((el) => {
-    gsap.fromTo(el, { opacity: 0, y: 36, filter: 'blur(10px)' }, {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.3, ease: EASE,
+    gsap.fromTo(el, { opacity: 0, y: 24, filter: soft ? 'blur(4px)' : 'none' }, {
+      opacity: 1, y: 0, filter: soft ? 'blur(0px)' : 'none', duration: 0.9, ease: EASE, clearProps: 'filter',
       scrollTrigger: { trigger: el, start: 'top 88%', once: true },
     });
   });
 
   $$('.bento, .facts').forEach((group) => {
     const tiles = $$('[data-tile]', group);
-    gsap.fromTo(tiles, { opacity: 0, y: 60, scale: 0.96 }, {
-      opacity: 1, y: 0, scale: 1, duration: 1.4, ease: EASE, stagger: 0.1, clearProps: 'transform',
+    gsap.fromTo(tiles, { opacity: 0, y: 40, scale: 0.97 }, {
+      opacity: 1, y: 0, scale: 1, duration: 0.9, ease: EASE, stagger: 0.08, clearProps: 'transform',
       scrollTrigger: {
         trigger: group, start: 'top 85%', once: true,
         onEnter: () => tiles.forEach((t, i) => setTimeout(() => t.classList.add('is-in'), 300 + i * 100)),
@@ -420,8 +428,8 @@ function reveals() {
   // steps: the line fills, numbers light in turn
   const flow = $('[data-flow]');
   const steps = $$('.flow__step', flow);
-  gsap.fromTo(steps, { opacity: 0, y: 40 }, {
-    opacity: 1, y: 0, duration: 1.2, ease: EASE, stagger: 0.12,
+  gsap.fromTo(steps, { opacity: 0, y: 24 }, {
+    opacity: 1, y: 0, duration: 0.8, ease: EASE, stagger: 0.1,
     scrollTrigger: { trigger: flow, start: 'top 85%', once: true },
   });
   ScrollTrigger.create({
@@ -432,10 +440,10 @@ function reveals() {
     },
   });
 
-  // pills: the inner light follows the cursor
-  $$('.pill').forEach((p) => p.addEventListener('pointermove', (e) => {
+  // pills: the inner light follows the cursor (moved by transform, so nothing repaints)
+  if (soft) $$('.pill').forEach((p) => p.addEventListener('pointermove', (e) => {
     const r = p.getBoundingClientRect();
-    p.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    p.style.setProperty('--sx', `${Math.round(e.clientX - r.left - r.width / 2)}px`);
   }));
 }
 
