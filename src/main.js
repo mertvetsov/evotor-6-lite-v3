@@ -90,10 +90,10 @@ let trips = 0;
 /* ------------------------------------------------------------------ choreography
    Poses are keyframed against scroll positions measured from the DOM. The
    terminal and the studio glow follow the interpolated pose with damping. */
-const FIELDS = ['rx', 'ry', 'rz', 'x', 'y', 's', 'op', 'gx', 'gy', 'go', 'pr', 'dy', 'dn', 'sh']; // pr: receipt paper out; dy: time of day 0..1, dn: how much the day light is on; sh: cursor highlight (hero only)
+const FIELDS = ['rx', 'ry', 'rz', 'x', 'y', 's', 'op', 'gx', 'gy', 'go', 'pr', 'dy', 'dn', 'sh', 'ex']; // ex: exploded view 0..1; pr: receipt paper out; dy: time of day 0..1, dn: how much the day light is on; sh: cursor highlight (hero only)
 // what the terminal's own screen shows in each part of the page (not interpolated: it switches at the midpoint)
-const SCR = { menu: 0, pay: 1, done: 2, success: 3, wait: 4, shift: 5 }; // 0–2 screenshots; 3–5 = live canvases (success, waiting for payment, working day)
-const P = (o) => ({ rx: 0, ry: 0, rz: 0, x: 0, y: 0, s: 0.85, op: 1, gx: 50, gy: 60, go: 1, pr: 0, dy: 0, dn: 0, sh: 0, screen: SCR.menu, ...o });
+const SCR = { menu: 0, pay: 1, done: 2, success: 3, wait: 4, shift: 5, sum: 6 }; // 0–2 screenshots; 3–5 = live canvases (success, waiting for payment, working day); 6 = amount entry (exploded view)
+const P = (o) => ({ rx: 0, ry: 0, rz: 0, x: 0, y: 0, s: 0.85, op: 1, gx: 50, gy: 60, go: 1, pr: 0, dy: 0, dn: 0, sh: 0, ex: 0, screen: SCR.menu, ...o });
 
 let keys = [];
 let cutRange = [0, 0];
@@ -101,14 +101,17 @@ let narrow = false;
 
 // Must match the camera in terminal.js (fov 28°, distance 6.2, pulled back on tall screens).
 const FOV = 28, DIST = 6.2, DEVICE_H = 2.6, DEVICE_W = 1.45;
+// the exploded view's on-screen extent at its pose (world units, measured): wider and a little taller
+const XP_W = 4.2, XP_H = 4.4;
 // same query as the stacked layout in styles.css: phones and portrait screens
 const STACKED = matchMedia('(max-width: 760px), (max-aspect-ratio: 9/10)');
 
 /* Fit the terminal into a layout slot as it will sit at scroll position `atY`:
    the slot's on-screen box → world position, scale and glow centre. The copy
-   never overlaps the device because the device only ever occupies its slot. */
-function fit(slot, atY, fill = 0.92) {
-  const pin = slot.closest('.tour__pin'); // sticky: once pinned its box sits at the viewport top
+   never overlaps the device because the device only ever occupies its slot.
+   `w`/`h`: the device's extent in world units (the exploded view is much wider than the device). */
+function fit(slot, atY, fill = 0.92, w = DEVICE_W, h = DEVICE_H) {
+  const pin = slot.closest('[data-pin]'); // sticky: once pinned its box sits at the viewport top
   const vw = innerWidth, vh = innerHeight;
   const aspect = vw / vh;
   const z = aspect < 0.9 ? (DIST / Math.max(aspect, 0.6)) * 0.9 : DIST;
@@ -118,7 +121,7 @@ function fit(slot, atY, fill = 0.92) {
   let top = pin ? r.top - pin.getBoundingClientRect().top : r.top + scrollY - atY;
   if (pin) {
     // before the tour pins, its box still scrolls with the page: the slot sits lower by the distance left
-    const tour = pin.closest('[data-tour]');
+    const tour = pin.parentElement; // the tall track the pin sticks inside
     const start = tour.getBoundingClientRect().top + scrollY;
     if (atY < start) top += start - atY;
     // …and after it unpins, it scrolls away upwards with the page
@@ -127,7 +130,7 @@ function fit(slot, atY, fill = 0.92) {
   }
   const cx = r.left + r.width / 2;
   const cy = top + r.height / 2;
-  const s = Math.min((r.height * k * fill) / DEVICE_H, (r.width * k * fill) / DEVICE_W);
+  const s = Math.min((r.height * k * fill) / h, (r.width * k * fill) / w);
   return { x: (cx - vw / 2) * k, y: -(cy - vh / 2) * k, s: Math.max(0.2, s), gx: (cx / vw) * 100, gy: (cy / vh) * 100 };
 }
 
@@ -140,7 +143,9 @@ function buildKeys() {
   const tourTop = top('[data-tour]');
   const tourLen = tour.offsetHeight - vh;
   narrow = STACKED.matches;
-  const at = (y, name, pose, fill) => [y, P({ ...fit(slot(name), y, fill), ...pose })];
+  const at = (y, name, pose, fill, w, h) => [y, P({ ...fit(slot(name), y, fill, w, h), ...pose })];
+  // the screen flies further out than the back parts: nudge the exploded stack right so it sits centred
+  const centre = (key) => { key[1].x += key[1].s * 0.28; return key; };
   const print = (key) => { key[1].y -= key[1].s * 0.55; return key; }; // leave headroom for the paper
   // a virtual centred box: 76% of the viewport height
   const k = (() => {
@@ -155,6 +160,13 @@ function buildKeys() {
   const risksY = top('[data-k="risks"]') - vh * 0.62; // gone before the tiles fill the view
   const tourSlot = (i) => (narrow ? 'tour-l' : i % 2 === 0 ? 'tour-l' : 'tour-r');
   const tourAt = (i) => tourTop + tourLen * (i * 0.25 + 0.125);
+  const xp = $('[data-xp]');
+  const xpTop = top('[data-xp]');
+  const xpLen = xp.offsetHeight - vh;
+  // the facts panel between the tour and this block can be short: enter only once the tour's exit has faded out
+  const tourGone = tourTop + tourLen + vh * 0.9; // the tour's last key (below)
+  const xpIn = Math.min(Math.max(xpTop - vh * 0.85, tourGone + 1), xpTop - 2);
+  const xpRide = Math.min(Math.max(xpTop - vh * 0.35, xpIn + vh * 0.2), xpTop - 1);
   const formY = top('[data-k="form"]') + vh * 0.15;
   const footY = top('[data-k="foot"]');
 
@@ -186,6 +198,17 @@ function buildKeys() {
     // leaving: the device rides up with the block and fades only near the top edge
     at(tourTop + tourLen + vh * 0.45, tourSlot(3), { rx: 0.1, ry: -6.3, dn: 1, dy: 1, screen: SCR.shift }),
     at(tourTop + tourLen + vh * 0.9, tourSlot(3), { rx: 0.12, ry: -6.6, op: 0, go: 0, dy: 1, screen: SCR.shift }),
+    // exploded view: rides in assembled, turns three-quarter, comes apart part by part, holds while the
+    // labels read, turns a little further and snaps back together before the block lets go
+    at(xpIn, 'xp', { rx: 0.1, ry: 0.9, op: 0, go: 0, screen: SCR.sum }),
+    at(xpRide, 'xp', { rx: 0.08, ry: 0.35, go: 0, screen: SCR.sum }),
+    at(xpTop, 'xp', { rx: 0.12, ry: -0.25, rz: 0.04, go: 0, screen: SCR.sum }, 0.8),
+    at(xpTop + xpLen * 0.1, 'xp', { rx: 0.18, ry: -0.6, rz: 0.04, go: 0, screen: SCR.sum }, 0.8),
+    centre(at(xpTop + xpLen * 0.5, 'xp', { rx: 0.24, ry: -0.95, rz: 0.05, ex: 1, go: 0, screen: SCR.sum }, 0.9, XP_W, XP_H)),
+    centre(at(xpTop + xpLen * 0.78, 'xp', { rx: 0.24, ry: -1.12, rz: 0.05, ex: 1, go: 0, screen: SCR.sum }, 0.9, XP_W, XP_H)),
+    at(xpTop + xpLen * 0.98, 'xp', { rx: 0.14, ry: -1.6, rz: 0.04, go: 0, screen: SCR.sum }, 0.8),
+    at(xpTop + xpLen + vh * 0.45, 'xp', { rx: 0.12, ry: -1.9, rz: 0.04, go: 0, screen: SCR.sum }, 0.8),
+    at(xpTop + xpLen + vh * 0.9, 'xp', { rx: 0.12, ry: -2.2, op: 0, go: 0, screen: SCR.sum }, 0.8),
     at(formY - vh * 0.55, 'form', { rx: 0.1, ry: 1.4, op: 0, go: 0, screen: SCR.wait }),
     at(formY, 'form', { rx: 0.08, ry: 0.75, rz: -0.05, go: 0.9, screen: SCR.wait }),
     at(footY - vh * 0.6, 'form', { rx: 0.08, ry: 0.4, go: 0.8, screen: SCR.wait }),
@@ -308,6 +331,94 @@ function tourWatch() {
   update();
 }
 
+/* exploded view: callouts pinned to the parts. The terminal projects each anchor after every frame;
+   a callout shows once its part is out, and flips to the other side rather than leave the screen. */
+// label → [part mesh it rides on, nudge from the part's centre in its own bounding-box units]
+const ANCHORS = {
+  screen: ['_Screen', [0, 0, -0.42]],
+  scan: ['_Scan_Glass', [0.3, 0, 0]],
+  printer: ['_Body_5', [0, 0, 0]],
+  body: ['_Body_3', [0, 0, 0.44]],
+  battery: ['_Body_4', [0, 0, 0.1]],
+};
+function partLabels() {
+  const list = $('[data-parts]');
+  if (!list) return null;
+  const copy = $('.xp__copy');
+  const items = $$('.part', list).map((el) => ({ el, text: $('.part__text', el), id: el.dataset.part, side: el.dataset.side, lead: 0, on: false, x: NaN, y: NaN, w: 0, h: 0 }));
+  let lead = 0;
+  const GAP = 15; // dot radius + breathing room between the line's end and the card
+  const DOT = 16; // a dot with its halo, kept clear of other callouts
+  // the card and the leader line for a side, around the anchor point
+  const shape = (it, side, x, y, l) => {
+    const d = l + GAP;
+    if (side === 'r') return [[x + d, y - it.h / 2, x + d + it.w, y + it.h / 2], [x + 9, y - 1, x + d, y + 1]];
+    if (side === 'l') return [[x - d - it.w, y - it.h / 2, x - d, y + it.h / 2], [x - d, y - 1, x - 9, y + 1]];
+    if (side === 't') return [[x - it.w / 2, y - d - it.h, x + it.w / 2, y - d], [x - 1, y - d, x + 1, y - 9]];
+    return [[x - it.w / 2, y + d, x + it.w / 2, y + d + it.h], [x - 1, y + 9, x + 1, y + d]];
+  };
+  const hits = (a, b, pad = 8) => a[0] < b[2] + pad && a[2] + pad > b[0] && a[1] < b[3] + pad && a[3] + pad > b[1];
+  const SIDES = ['r', 'l', 't', 'b'];
+  return {
+    register(api) { items.forEach((it) => ANCHORS[it.id] && api.anchor(it.id, ...ANCHORS[it.id])); },
+    update(api) {
+      const active = cur.op > 0.6 && cur.ex > 0.55;
+      if (!lead) {
+        lead = narrow ? 18 : Math.round(Math.min(56, Math.max(28, innerWidth * 0.034)));
+        items.forEach((it) => { it.w = it.text.offsetWidth; it.h = it.text.offsetHeight; });
+      }
+      // cards stay clear of the copy column, the bar and the screen edges
+      const bounds = [narrow ? 12 : copy.getBoundingClientRect().right + 16, 68, innerWidth - 12, innerHeight - 12];
+      const pts = items.map((it) => ANCHORS[it.id] && api.project(it.id, ANCHORS[it.id][0]));
+      const live = items.map((it, i) => active && pts[i] && pts[i].out > 0.9 && !pts[i].behind);
+      // callouts point away from the middle of the exploded stack
+      const shown = pts.filter((p, i) => live[i]);
+      const cx = shown.reduce((a, p) => a + p.x, 0) / Math.max(1, shown.length);
+      const cy = shown.reduce((a, p) => a + p.y, 0) / Math.max(1, shown.length);
+      const dots = pts.map((p, i) => (live[i] ? [p.x - DOT, p.y - DOT, p.x + DOT, p.y + DOT] : null));
+      const cards = [], lines = [];
+      items.forEach((it, i) => {
+        const p = pts[i];
+        if (!p) return;
+        let pick = null;
+        if (live[i]) {
+          const dx = p.x - cx, dy = (p.y - cy) * 1.6; // a little bias toward the sides: cards are wide
+          const out = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'r' : 'l') : (dy >= 0 ? 'b' : 't');
+          // keep what is showing while it still fits (no jumping), else outward first, short line before a long one
+          const tries = [];
+          if (it.on) tries.push([it.side, it.lead]);
+          for (const l of [lead, Math.round(lead * 2.2)]) for (const s of [out, ...SIDES.filter((q) => q !== out)]) tries.push([s, l]);
+          for (const [s, l] of tries) {
+            const [card, line] = shape(it, s, p.x, p.y, l);
+            if (card[0] < bounds[0] || card[1] < bounds[1] || card[2] > bounds[2] || card[3] > bounds[3]) continue;
+            if (cards.some((c) => hits(card, c)) || lines.some((c) => hits(card, c, 4))) continue;
+            if (dots.some((d, j) => d && j !== i && (hits(card, d, 0) || hits(line, d, 0)))) continue;
+            if (cards.some((c) => hits(line, c, 2))) continue;
+            pick = [s, l]; cards.push(card); lines.push(line); break;
+          }
+        }
+        const on = pick !== null;
+        if (on !== it.on) { it.on = on; it.el.classList.toggle('is-on', on); }
+        if (on && pick[0] !== it.side) { it.side = pick[0]; it.el.dataset.side = pick[0]; }
+        if (on && pick[1] !== it.lead) { it.lead = pick[1]; it.el.style.setProperty('--lead', `${pick[1]}px`); }
+        const x = Math.round(p.x * 2) / 2, y = Math.round(p.y * 2) / 2;
+        if (x !== it.x || y !== it.y) { it.x = x; it.y = y; it.el.style.transform = `translate3d(${x}px, ${y}px, 0)`; }
+      });
+    },
+    reset() { lead = 0; },
+  };
+}
+
+/** An image, or null if it fails (onload rather than decode(): decode stalls in a background tab). */
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 /* ------------------------------------------------------------------ 3D */
 async function terminal() {
   const root = document.documentElement;
@@ -315,12 +426,14 @@ async function terminal() {
   if (reduced) { root.classList.add('no-3d'); return; }
   buildKeys();
   Object.assign(cur, target(scrollY), { op: 0 });
+  const labels = partLabels();
   try {
     const [{ mountTerminal }, { createSuccessScreen }, { createPayScreen }, { createShiftScreen }] = await Promise.all([
       import('./terminal.js'), import('./success-screen.js'), import('./pay-screen.js'), import('./shift-screen.js'),
     ]);
     let success = null;
-    const api = await mountTerminal(stage, {
+    let api = null;
+    api = await mountTerminal(stage, {
       reduced,
       assetBase: './',
       drive,
@@ -330,7 +443,9 @@ async function terminal() {
       distance: 6.2,
       // the success screen replays its animation every time the terminal arrives at the form
       onScreen: (i) => (i === SCR.success ? success?.play() : success?.stop()),
+      onFrame: () => api && labels?.update(api),
     });
+    labels?.register(api);
     root.classList.add('has-3d');
     success = await createSuccessScreen({ assetBase: './', reduced });
     const pay = await createPayScreen({ assetBase: './', reduced });
@@ -338,7 +453,12 @@ async function terminal() {
     const iW = api.addScreen(pay.canvas, pay.update);
     shift = createShiftScreen();
     const iD = api.addScreen(shift.canvas, shift.update);
-    if (iS !== SCR.success || iW !== SCR.wait || iD !== SCR.shift) console.warn('[terminal] unexpected screen indices', iS, iW, iD);
+    // the amount-entry screen for the exploded view: a still, so it is drawn once into a canvas
+    const sum = await loadImage('./img/screen-tex-sum.jpg');
+    const sumCanvas = Object.assign(document.createElement('canvas'), { width: 720, height: 1600 });
+    if (sum) sumCanvas.getContext('2d').drawImage(sum, 0, 0, 720, 1600);
+    const iA = api.addScreen(sumCanvas, () => false);
+    if (iS !== SCR.success || iW !== SCR.wait || iD !== SCR.shift || iA !== SCR.sum) console.warn('[terminal] unexpected screen indices', iS, iW, iD, iA);
 
     document.addEventListener('lead:sent', () => {
       lead.sent = true;
@@ -360,7 +480,7 @@ async function terminal() {
     return;
   }
   let t;
-  const rebuild = () => { clearTimeout(t); t = setTimeout(buildKeys, 120); };
+  const rebuild = () => { clearTimeout(t); t = setTimeout(() => { buildKeys(); labels?.reset(); }, 120); };
   addEventListener('resize', rebuild);
   new ResizeObserver(rebuild).observe(document.body);
 }

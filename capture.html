@@ -14,15 +14,22 @@ const POSES = {
   tour4: { rx: 0.08, ry: -5.95, rz: -0.05, screen: 2 },
   form:  { rx: 0.08, ry: 0.75,  rz: -0.05, screen: 2 },
   formwait: { rx: 0.08, ry: 0.75, rz: -0.05, screen: 1 },
+  explode: { rx: 0.24, ry: -0.95, rz: 0.05, screen: 3, ex: 1, s: 0.66, x: 0.18, width: 1200, height: 900 },
 };
 const api = await mountTerminal(document.getElementById('stage'), {
   reduced: true, interactive: false, look: 'light', assetBase: './',
   drive: () => ({ rx: 0, ry: 0, rz: 0, x: 0, y: 0, s: 1 }),
 });
+// the amount-entry screen (index 3 here: capture adds no live screens) for the exploded view
+const sum = new Image();
+await new Promise((r) => { sum.onload = r; sum.onerror = r; sum.src = './img/screen-tex-sum.jpg'; });
+const sumCanvas = Object.assign(document.createElement('canvas'), { width: 720, height: 1600 });
+sumCanvas.getContext('2d').drawImage(sum, 0, 0, 720, 1600);
+api.addScreen(sumCanvas, () => false);
 window.capture = async () => {
   const done = [];
   for (const [name, p] of Object.entries(POSES)) {
-    const url = api.snapshot({ ...p, s: 1.02, width: 900, height: 1200 });
+    const url = api.snapshot({ s: 1.02, width: 900, height: 1200, ...p });
     const r = await fetch('http://127.0.0.1:5199/save?name=' + name, { method: 'POST', body: url });
     done.push(name + ':' + r.status);
   }

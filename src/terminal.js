@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { createReceipt } from './receipt.js';
+import { createExplode } from './explode.js';
 import { gsap } from 'gsap';
 
 const MODEL_PATH = 'models/terminal.glb';
@@ -30,6 +31,7 @@ export async function mountTerminal(stage, {
   pointerTarget = null,  // element (or window) whose pointer position adds a gentle tilt
   look = 'default',      // 'studio': dark-stage key/rim lighting
   onScreen = null,       // (index) => void, called when a screen starts wiping in
+  onFrame = null,        // () => void, called after each rendered frame (labels that follow the parts)
 } = {}) {
   const canvas = stage.querySelector('canvas');
   const isTouch = matchMedia('(hover: none)').matches;
@@ -310,11 +312,12 @@ export async function mountTerminal(stage, {
 
   const rig = new Group(); // scroll + drag + float
   rig.add(oriented);
+  const explode = createExplode(model, rig); // parts slide apart by drive().ex
   scene.add(rig);
   // receipt paper from the printer slot (rig-local, so it follows every pose)
   const receipt = createReceipt({ anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) });
   rig.add(receipt.mesh);
-  if (import.meta.env?.DEV) window.__term = { scene, rig, oriented, model, camera, renderer, receipt, textures, screenMat, uniforms, cursor, sheen, moveCursorLight, setSheenAmount: (v) => (sheenAmount = v), applyDay: (...a) => applyDay(...a) }; // dev-only handle for checks
+  if (import.meta.env?.DEV) window.__term = { scene, rig, oriented, model, explode, camera, renderer, receipt, textures, screenMat, uniforms, cursor, sheen, moveCursorLight, setSheenAmount: (v) => (sheenAmount = v), applyDay: (...a) => applyDay(...a) }; // dev-only handle for checks
 
   /* ------------------------------------------------ sizing */
   // Resizing a WebGL canvas wipes its buffer. iOS Safari resizes the fixed stage on every frame
@@ -504,6 +507,7 @@ export async function mountTerminal(stage, {
       if (d.screen != null) { driven = true; if (d.screen !== current || swapping) showScreen(d.screen, false, d.op < 0.05 || !!d.instant, !!d.cut); }
       // paper feeds in the second half of the approach, once the device has nearly turned
       receipt.setProgress(MathUtils.smoothstep(d.pr ?? 0, 0.35, 1));
+      explode.set(d.ex ?? 0);
       applyDay(d.dy ?? 0, d.dn ?? 0);
       sheenAmount = d.sh ?? 1;
       rig.rotation.set(
@@ -535,7 +539,7 @@ export async function mountTerminal(stage, {
     }
 
     moveCursorLight(dt);
-    if (!skipRender) renderer.render(scene, camera);
+    if (!skipRender) { renderer.render(scene, camera); onFrame?.(); }
   };
 
   // the entrance plays on the first frame that is actually shown — a page opened
@@ -589,7 +593,15 @@ export async function mountTerminal(stage, {
       return textures.length - 1;
     },
     /** Render one still in a given pose (used to bake the static fallback posters). */
-    snapshot({ rx = 0, ry = 0, rz = 0, s = 1, screen = 0, pr = 0, width = 900, height = 1200 } = {}) {
+    /** Register a label anchor on a part (see explode.js). */
+    anchor: (id, name, nudge) => explode.anchor(id, name, nudge),
+    /** Where an anchor is on the canvas now (CSS px), and how far its part has come out (0..1). */
+    project(id, part) {
+      const p = explode.project(id, camera, canvas.clientWidth, canvas.clientHeight);
+      if (p) p.out = explode.progressOf(part);
+      return p;
+    },
+    snapshot({ rx = 0, ry = 0, rz = 0, s = 1, x = 0, screen = 0, pr = 0, ex = 0, width = 900, height = 1200 } = {}) {
       stop();
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
@@ -600,8 +612,9 @@ export async function mountTerminal(stage, {
       screenMat.emissiveMap = textures[screen % textures.length];
       uniforms.uProgress.value = 0;
       receipt.setProgress(pr);
+      explode.set(ex);
       rig.rotation.set(rx, ry, rz, 'YXZ');
-      rig.position.set(0, 0, 0);
+      rig.position.set(x, 0, 0);
       rig.scale.setScalar(s);
       renderer.render(scene, camera);
       return canvas.toDataURL('image/png');
