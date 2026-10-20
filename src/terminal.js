@@ -70,13 +70,17 @@ export async function mountTerminal(stage, {
   if (look === 'light') {
     // bright product-shot lighting for a pale page: big soft key, gentle peach
     // rim and a lavender edge so the grey body separates from the background
-    key.color.set('#ffffff'); key.intensity = 2.2; key.position.set(1.2, 3.5, 3.5);
-    fill.color.set('#f1f3ff'); fill.intensity = 1.4; fill.position.set(-2.5, 0.8, 4);
-    rim.color.set('#ff9a66'); rim.intensity = 2.4; rim.position.set(-3, 1.5, -2.5);
-    edge = new DirectionalLight(new Color('#b9b2ff'), 1.8);
+    // Levels measured against RAL 7040 (#9DA3A6): at the old 2.2 / 1.4 / env 1.0 the grey plastic
+    // rendered almost white (back facing camera ≈ 239,245,249). Now sides and three-quarter faces
+    // read ≈ 150,155,168 and a back lit head-on ≈ 228,234,237 — grey plastic, not white.
+    // The frontal fill was what washed it out, and its blue tint cooled the grey; it is now weak and neutral.
+    key.color.set('#ffffff'); key.intensity = 1.65; key.position.set(1.2, 3.5, 3.5);
+    fill.color.set('#ffffff'); fill.intensity = 0.37; fill.position.set(-2.5, 0.8, 4);
+    rim.color.set('#ff9a66'); rim.intensity = 1.8; rim.position.set(-3, 1.5, -2.5);
+    edge = new DirectionalLight(new Color('#b9b2ff'), 1.35);
     edge.position.set(3.2, 2, -2);
     scene.add(edge);
-    scene.environmentIntensity = 1.0;
+    scene.environmentIntensity = 0.6;
     renderer.toneMappingExposure = 1.02;
   }
   if (look === 'studio') {
@@ -154,11 +158,12 @@ export async function mountTerminal(stage, {
   const base = lights.map((l) => ({ color: l.color.clone(), intensity: l.intensity, position: l.position.clone() }));
   const baseExposure = renderer.toneMappingExposure;
   const DAY = {
-    // tints stay soft: the light reads as morning or evening, the body stays RAL 7040 grey
-    key: [['#ffdcb4', 2.5], ['#ffffff', 2.6], ['#ffc8bf', 2.2]],
-    fill: [['#fff0e2', 1.4], ['#f1f3ff', 1.4], ['#dcd8ff', 1.4]],
-    rim: [['#ffb26e', 2.8], ['#ffd9c0', 1.8], ['#b297ff', 3.0]],
-    edge: [['#ffe2bd', 1.6], ['#cfe0ff', 1.8], ['#ff8dbb', 2.4]],
+    // tints stay soft: the light reads as morning or evening, the body stays RAL 7040 grey;
+    // levels follow the studio's (×0.75, the frontal fill much weaker) so the plastic doesn't wash out
+    key: [['#ffdcb4', 1.9], ['#ffffff', 1.95], ['#ffc8bf', 1.65]],
+    fill: [['#fff0e2', 0.4], ['#ffffff', 0.37], ['#e6e3ff', 0.4]],
+    rim: [['#ffb26e', 2.1], ['#ffd9c0', 1.35], ['#b297ff', 2.25]],
+    edge: [['#ffe2bd', 1.2], ['#cfe0ff', 1.35], ['#ff8dbb', 1.8]],
     exposure: [1.04, 1.06, 0.97],
   };
   const tmp = new Color();
@@ -467,7 +472,7 @@ export async function mountTerminal(stage, {
     if (drive) {
       const d = drive(dt);
       skipRender = !!d.skip;
-      if (d.screen != null) { driven = true; if (d.screen !== current || swapping) showScreen(d.screen, false, d.op < 0.05, !!d.cut); }
+      if (d.screen != null) { driven = true; if (d.screen !== current || swapping) showScreen(d.screen, false, d.op < 0.05 || !!d.instant, !!d.cut); }
       // paper feeds in the second half of the approach, once the device has nearly turned
       receipt.setProgress(MathUtils.smoothstep(d.pr ?? 0, 0.35, 1));
       applyDay(d.dy ?? 0, d.dn ?? 0);

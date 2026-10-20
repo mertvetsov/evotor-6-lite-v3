@@ -43,10 +43,29 @@ document.addEventListener('click', (e) => {
   // «Оставить заявку» lands on the form panel itself, not the device above it
   const target = hash === '#form' ? $('.apply__panel') : $(hash);
   if (!target) return;
-  if (lenis) lenis.scrollTo(target, { offset: hash === '#top' ? 0 : hash === '#form' ? -76 : -56, duration: 1.6 });
-  else target.scrollIntoView({ behavior: 'smooth' });
-  if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), 1600);
+  const offset = hash === '#top' ? 0 : hash === '#form' ? -76 : -56;
+  if (!lenis) {
+    target.scrollIntoView({ behavior: 'smooth' });
+    if (hash === '#form') setTimeout(() => $('#form input')?.focus({ preventScroll: true }), 1600);
+    return;
+  }
+  // a long trip would fast-forward the whole 3D choreography (spins, screens, receipt, the day…):
+  // the device fades out for the ride and appears already settled at the destination
+  const far = Math.abs(target.getBoundingClientRect().top + offset) > innerHeight * 1.2;
+  const trip = ++trips; // a newer click supersedes this one
+  navigating = far;
+  const arrive = () => {
+    if (trip !== trips) return;
+    trips++; // run once
+    if (far) { snapDevice(); navigating = false; }
+    if (hash === '#form') $('#form input')?.focus({ preventScroll: true });
+  };
+  lenis.scrollTo(target, { offset, duration: 1.6, onComplete: arrive });
+  setTimeout(arrive, 1900); // in case the ride is interrupted by the visitor's own scrolling
 });
+
+let navigating = false;
+let trips = 0;
 
 /* bar: active section link */
 {
@@ -187,6 +206,12 @@ function target(y) {
   return keys[keys.length - 1][1];
 }
 
+/** Put the device straight into the pose for the current scroll (on arrival from a menu link), no easing. */
+function snapDevice() {
+  if (!keys.length) return;
+  const t = target(scrollY);
+  FIELDS.forEach((f) => f !== 'op' && (cur[f] = t[f])); // pose snaps; opacity still fades back in
+}
 if (import.meta.env.DEV) window.__target = (y = scrollY) => target(y); // dev-only: the authored pose at a scroll position
 const cur = P({ op: 1 });
 let last = [];
@@ -210,6 +235,7 @@ let lastT = 0;
 const lead = { sent: false, face: 0 };
 function drive() {
   const t = { ...target(scrollY) };
+  if (navigating) t.op = 0; // hidden while a menu link scrolls the page
   if (t.screen === SCR.wait) {
     const b = lead.face;
     t.rx *= 1 - b; t.ry = t.ry * (1 - b) + 0.1 * b; t.rz *= 1 - b; t.s *= 1 + 0.12 * b;
@@ -241,7 +267,7 @@ function drive() {
     dayLayer.style.setProperty('--gx', css[1]);
     dayLayer.style.setProperty('--gy', css[2]);
   }
-  return { ...cur, screen: t.screen, cut: scrollY > cutRange[0] && scrollY < cutRange[1], skip: cur.op < 0.01 };
+  return { ...cur, screen: t.screen, cut: scrollY > cutRange[0] && scrollY < cutRange[1], instant: navigating, skip: cur.op < 0.01 };
 }
 
 /* tour: which spec is on */
