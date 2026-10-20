@@ -276,7 +276,14 @@ function drive() {
 function tourWatch() {
   const tour = $('[data-tour]');
   const specs = $$('[data-spec]', tour);
-  const dots = $$('.tour__dots span', tour);
+  const dots = $$('.tour__dots button', tour);
+  // a dot takes the tour to the middle of its slide — the same pose and screen a scroll would reach
+  dots.forEach((dot, i) => dot.addEventListener('click', () => {
+    const top = tour.getBoundingClientRect().top + scrollY;
+    const y = top + (tour.offsetHeight - innerHeight) * (i * 0.25 + 0.125);
+    if (lenis) lenis.scrollTo(y, { duration: 1.1 });
+    else scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
+  }));
   const posters = $$('.poster--tour', tour);
   let active = -1;
   const update = () => {
@@ -289,7 +296,7 @@ function tourWatch() {
     if (i === active) return;
     active = i;
     specs.forEach((s, j) => s.classList.toggle('is-on', j === i));
-    dots.forEach((d, j) => d.classList.toggle('is-on', j === i));
+    dots.forEach((d, j) => { d.classList.toggle('is-on', j === i); j === i ? d.setAttribute('aria-current', 'step') : d.removeAttribute('aria-current'); });
     posters.forEach((p) => p.classList.toggle('is-on', +p.dataset.i === i));
   };
   lenis ? lenis.on('scroll', update) : addEventListener('scroll', update, { passive: true });
