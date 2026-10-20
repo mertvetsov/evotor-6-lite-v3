@@ -223,7 +223,8 @@ export async function mountTerminal(stage, {
   const black = new MeshPhysicalMaterial({ color: new Color('#050608'), roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.05 });
   const rubber = new MeshStandardMaterial({ color: new Color('#7d8487'), roughness: 0.85 });
   const accent = new MeshPhysicalMaterial({ color: new Color('#ff4a17'), roughness: 0.4, clearcoat: 0.6 });
-  const logo = new MeshPhysicalMaterial({ color: new Color('#F05023'), roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+  // on the grey RAL 7040 body the ЭВОТОР logo is white (the Blender file has it orange)
+  const logo = new MeshPhysicalMaterial({ color: new Color('#ffffff'), roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
   const metal = new MeshStandardMaterial({ color: new Color('#c3c8cc'), roughness: 0.35, metalness: 1 });
   const glass = new MeshPhysicalMaterial({ color: new Color('#0b0d10'), roughness: 0.05, clearcoat: 1, metalness: 0.2 });
   const flash = new MeshStandardMaterial({ color: new Color('#e7e07a'), roughness: 0.5 });
