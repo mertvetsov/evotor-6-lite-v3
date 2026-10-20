@@ -102,7 +102,7 @@ let narrow = false;
 // Must match the camera in terminal.js (fov 28°, distance 6.2, pulled back on tall screens).
 const FOV = 28, DIST = 6.2, DEVICE_H = 2.6, DEVICE_W = 1.45;
 // the exploded view's on-screen extent at its pose (world units, measured): wider and a little taller
-const XP_W = 4.2, XP_H = 4.4;
+const XP_W = 4.2, XP_H = 4.7;
 // same query as the stacked layout in styles.css: phones and portrait screens
 const STACKED = matchMedia('(max-width: 760px), (max-aspect-ratio: 9/10)');
 
@@ -337,9 +337,10 @@ function tourWatch() {
 const ANCHORS = {
   screen: ['_Screen', [0, 0, -0.42]],
   scan: ['_Scan_Glass', [0.3, 0, 0]],
-  printer: ['_Body_5', [0, 0, 0]],
+  printer: ['_Roll', [0, 0.5, 0]],
   body: ['_Body_3', [0, 0, 0.44]],
-  battery: ['_Body_4', [0, 0, 0.1]],
+  board: ['_Board', [0.1, -0.35, 0.05]],
+  battery: ['_Battery', [0.2, 0.2, 0.05]],
 };
 function partLabels() {
   const list = $('[data-parts]');
@@ -347,15 +348,15 @@ function partLabels() {
   const copy = $('.xp__copy');
   const items = $$('.part', list).map((el) => ({ el, text: $('.part__text', el), id: el.dataset.part, side: el.dataset.side, lead: 0, on: false, x: NaN, y: NaN, w: 0, h: 0 }));
   let lead = 0;
-  const GAP = 15; // dot radius + breathing room between the line's end and the card
-  const DOT = 16; // a dot with its halo, kept clear of other callouts
+  const GAP = 7; // the line starts at the bead's edge and runs right up to the card (matches styles.css)
+  const DOT = 10; // a bead with a little air, kept clear of other callouts
   // the card and the leader line for a side, around the anchor point
   const shape = (it, side, x, y, l) => {
     const d = l + GAP;
-    if (side === 'r') return [[x + d, y - it.h / 2, x + d + it.w, y + it.h / 2], [x + 9, y - 1, x + d, y + 1]];
-    if (side === 'l') return [[x - d - it.w, y - it.h / 2, x - d, y + it.h / 2], [x - d, y - 1, x - 9, y + 1]];
-    if (side === 't') return [[x - it.w / 2, y - d - it.h, x + it.w / 2, y - d], [x - 1, y - d, x + 1, y - 9]];
-    return [[x - it.w / 2, y + d, x + it.w / 2, y + d + it.h], [x - 1, y + 9, x + 1, y + d]];
+    if (side === 'r') return [[x + d, y - it.h / 2, x + d + it.w, y + it.h / 2], [x + GAP, y - 1, x + d, y + 1]];
+    if (side === 'l') return [[x - d - it.w, y - it.h / 2, x - d, y + it.h / 2], [x - d, y - 1, x - GAP, y + 1]];
+    if (side === 't') return [[x - it.w / 2, y - d - it.h, x + it.w / 2, y - d], [x - 1, y - d, x + 1, y - GAP]];
+    return [[x - it.w / 2, y + d, x + it.w / 2, y + d + it.h], [x - 1, y + GAP, x + 1, y + d]];
   };
   const hits = (a, b, pad = 8) => a[0] < b[2] + pad && a[2] + pad > b[0] && a[1] < b[3] + pad && a[3] + pad > b[1];
   const SIDES = ['r', 'l', 't', 'b'];

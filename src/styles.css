@@ -467,28 +467,30 @@ html.has-3d .xp__parts { position: fixed; inset: 0; display: block; margin: 0; p
 html.has-3d .part { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
 html.has-3d .part__dot,
 html.has-3d .part__line { display: block; position: absolute; }
-html.has-3d .part__text b { color: var(--white); }
-html.has-3d .part__text span { color: rgba(255, 255, 255, 0.72); }
-/* the dot sits exactly on the part: a white bead with a brand ring and a soft halo */
-html.has-3d .part__dot { left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: var(--white); box-shadow: 0 0 0 3px var(--orange), 0 0 0 9px rgba(240, 80, 35, 0.16); transform: scale(0); transition: transform 0.3s var(--ease-out); }
-html.has-3d .part__line { top: -0.5px; width: var(--lead); height: 1px; background: var(--ink); transform: scaleX(0); transition: transform 0.3s var(--ease-out); }
-html.has-3d .part__text { position: absolute; top: 0; width: max-content; max-width: 240px; padding: 10px 14px 11px; border-radius: 14px; background: var(--ink); color: var(--white); box-shadow: 0 14px 30px -16px rgba(22, 24, 29, 0.45); opacity: 0; transform: translate(0, -50%) translateX(var(--shift, 8px)); transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out); }
+/* the dot sits exactly on the part: a small white bead in a thin brand ring */
+html.has-3d .part__dot { left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--white); box-shadow: 0 0 0 2px var(--orange), 0 2px 6px rgba(22, 24, 29, 0.25); transform: scale(0); transition: transform 0.3s var(--ease-out); }
+/* the line starts at the bead's edge (7px) and runs exactly to the card: card offset = 7 + lead */
+html.has-3d .part__line { top: -0.5px; width: var(--lead); height: 1px; background: rgba(22, 24, 29, 0.45); transform: scaleX(0); transition: transform 0.3s var(--ease-out); }
+/* light frosted cards: quiet enough to sit over the parts, crisp enough to read */
+html.has-3d .part__text { position: absolute; top: 0; width: max-content; max-width: 240px; padding: 8px 12px 9px; border-radius: 12px; background: rgba(255, 255, 255, 0.72); box-shadow: inset 0 0 0 1px rgba(22, 24, 29, 0.08), 0 8px 24px -14px rgba(22, 24, 29, 0.28); -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3); opacity: 0; transform: translate(0, -50%) translateX(var(--shift, 6px)); transition: opacity 0.25s var(--ease-out), transform 0.3s var(--ease-out); }
+html.has-3d .part__text b { font-size: 15px; color: var(--ink); }
+html.has-3d .part__text span { font-size: 13px; color: var(--ink-2); }
 html.has-3d .part[data-side='t'] .part__line,
-html.has-3d .part[data-side='b'] .part__line { left: -0.5px; width: 1px; height: var(--lead); background: var(--ink); transform: scaleY(0); }
-html.has-3d .part[data-side='t'] .part__line { top: auto; bottom: 9px; transform-origin: 50% 100%; }
-html.has-3d .part[data-side='b'] .part__line { top: 9px; transform-origin: 50% 0; background: var(--ink); }
+html.has-3d .part[data-side='b'] .part__line { left: -0.5px; width: 1px; height: var(--lead); transform: scaleY(0); }
+html.has-3d .part[data-side='t'] .part__line { top: auto; bottom: 7px; transform-origin: 50% 100%; }
+html.has-3d .part[data-side='b'] .part__line { top: 7px; transform-origin: 50% 0; }
 html.has-3d .part[data-side='t'] .part__text,
-html.has-3d .part[data-side='b'] .part__text { left: 0; text-align: center; transform: translateX(-50%) translateY(var(--shift, 8px)); }
-html.has-3d .part[data-side='t'] .part__text { top: auto; bottom: calc(var(--lead) + 15px); }
-html.has-3d .part[data-side='b'] .part__text { top: calc(var(--lead) + 15px); --shift: -8px; }
+html.has-3d .part[data-side='b'] .part__text { left: 0; text-align: center; transform: translateX(-50%) translateY(var(--shift, 6px)); }
+html.has-3d .part[data-side='t'] .part__text { top: auto; bottom: calc(var(--lead) + 7px); }
+html.has-3d .part[data-side='b'] .part__text { top: calc(var(--lead) + 7px); --shift: -6px; }
 html.has-3d .part[data-side='t'].is-on .part__line,
 html.has-3d .part[data-side='b'].is-on .part__line { transform: scaleY(1); }
 html.has-3d .part[data-side='t'].is-on .part__text,
 html.has-3d .part[data-side='b'].is-on .part__text { transform: translateX(-50%); }
-html.has-3d .part[data-side='r'] .part__line { left: 9px; transform-origin: 0 50%; }
-html.has-3d .part[data-side='l'] .part__line { right: 9px; transform-origin: 100% 50%; background: var(--ink); }
-html.has-3d .part[data-side='r'] .part__text { left: calc(var(--lead) + 15px); }
-html.has-3d .part[data-side='l'] .part__text { right: calc(var(--lead) + 15px); text-align: right; --shift: -8px; }
+html.has-3d .part[data-side='r'] .part__line { left: 7px; transform-origin: 0 50%; }
+html.has-3d .part[data-side='l'] .part__line { right: 7px; transform-origin: 100% 50%; }
+html.has-3d .part[data-side='r'] .part__text { left: calc(var(--lead) + 7px); }
+html.has-3d .part[data-side='l'] .part__text { right: calc(var(--lead) + 7px); text-align: right; --shift: -6px; }
 /* arriving: dot → line → card, a beat apart; leaving: all at once and quicker */
 html.has-3d .part.is-on .part__dot { transform: scale(1); transition: transform 0.5s var(--ease); }
 html.has-3d .part.is-on .part__line { transform: scaleX(1); transition: transform 0.55s var(--ease) 0.12s; }
@@ -496,8 +498,8 @@ html.has-3d .part.is-on .part__text { opacity: 1; transform: translate(0, -50%);
 
 /* short screens: callouts keep only their titles */
 @media (max-height: 680px) {
-  html.has-3d .part__text { padding: 7px 11px 8px; border-radius: 11px; }
-  html.has-3d .part__text b { font-size: 15px; }
+  html.has-3d .part__text { padding: 6px 10px 7px; border-radius: 10px; }
+  html.has-3d .part__text b { font-size: 14px; }
   html.has-3d .part__text span { display: none; }
 }
 
@@ -690,7 +692,7 @@ html.has-3d .part.is-on .part__text { opacity: 1; transform: translate(0, -50%);
   .xp__title { margin-top: 16px; font-size: clamp(28px, 7vw, 40px); }
   .xp__lede { margin-top: 12px; font-size: 16px; }
   .xp__slot { top: calc(60px + 3vh + 210px); bottom: 3vh; left: var(--pad); right: var(--pad); }
-  html.has-3d .part__text { max-width: 150px; padding: 7px 10px 8px; border-radius: 11px; }
+  html.has-3d .part__text { max-width: 150px; padding: 6px 9px 7px; border-radius: 10px; }
   html.has-3d .part__text b { font-size: 14px; }
   html.has-3d .part__text span { display: none; }
 }

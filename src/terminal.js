@@ -8,6 +8,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { createReceipt } from './receipt.js';
 import { createExplode } from './explode.js';
+import { createInternals } from './internals.js';
 import { gsap } from 'gsap';
 
 const MODEL_PATH = 'models/terminal.glb';
@@ -312,7 +313,7 @@ export async function mountTerminal(stage, {
 
   const rig = new Group(); // scroll + drag + float
   rig.add(oriented);
-  const explode = createExplode(model, rig); // parts slide apart by drive().ex
+  const explode = createExplode(model, rig, createInternals()); // parts slide apart by drive().ex; the insides are illustrative
   scene.add(rig);
   // receipt paper from the printer slot (rig-local, so it follows every pose)
   const receipt = createReceipt({ anisotropy: Math.min(8, renderer.capabilities.getMaxAnisotropy()) });
