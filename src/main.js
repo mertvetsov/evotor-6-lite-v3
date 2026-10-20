@@ -155,7 +155,9 @@ function buildKeys() {
 
   keys = [
     // hero: large, turned to show the printer side, tilted into the copy
-    at(0, 'hero', narrow ? { rx: -0.04, ry: -0.35, rz: 0.06, sh: 1 } : { rx: 0.06, ry: -0.62, rz: 0.16, sh: 1 }, 1), // the cursor highlight lives only here
+    // (narrow: the device sits low under the copy, so it leans its top back, away from the camera — otherwise the
+    // top end with the logo shows from below, upside down)
+    at(0, 'hero', narrow ? { rx: -0.2, ry: -0.35, rz: 0.06, sh: 1 } : { rx: 0.06, ry: -0.62, rz: 0.16, sh: 1 }, 1), // the cursor highlight lives only here
     at(heroY, 'hero', { rx: 0.1, ry: -0.2, rz: 0.04, go: 0.8 }, 1),
     narrow
       ? [whyY, P({ rx: 0.1, ry: -1, y: 1.2, s: centreS * 0.6, op: 0, go: 0.2, screen: SCR.pay })]

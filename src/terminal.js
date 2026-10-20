@@ -1,7 +1,7 @@
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Group, Box3, Vector3, Color,
   MeshPhysicalMaterial, MeshStandardMaterial, TextureLoader, SRGBColorSpace,
-  BufferAttribute, PMREMGenerator, DirectionalLight, MathUtils, NeutralToneMapping, CanvasTexture,
+  BufferAttribute, PMREMGenerator, DoubleSide, DirectionalLight, MathUtils, NeutralToneMapping, CanvasTexture,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -214,11 +214,19 @@ export async function mountTerminal(stage, {
     color: new Color('#9da3a6'), roughness: 0.42, metalness: 0.0, // RAL 7040 Window grey
     clearcoat: 0.35, clearcoatRoughness: 0.3,
   });
+  // the frame and side keys are smooth plastic in the model: same grey, a touch glossier
+  const bodyGloss = new MeshPhysicalMaterial({
+    color: new Color('#9da3a6'), roughness: 0.3, metalness: 0.0,
+    clearcoat: 0.5, clearcoatRoughness: 0.2,
+  });
   const dark = new MeshPhysicalMaterial({ color: new Color('#16191d'), roughness: 0.42, clearcoat: 0.3 });
+  const black = new MeshPhysicalMaterial({ color: new Color('#050608'), roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.05 });
   const rubber = new MeshStandardMaterial({ color: new Color('#7d8487'), roughness: 0.85 });
   const accent = new MeshPhysicalMaterial({ color: new Color('#ff4a17'), roughness: 0.4, clearcoat: 0.6 });
+  const logo = new MeshPhysicalMaterial({ color: new Color('#F05023'), roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+  const metal = new MeshStandardMaterial({ color: new Color('#c3c8cc'), roughness: 0.35, metalness: 1 });
   const glass = new MeshPhysicalMaterial({ color: new Color('#0b0d10'), roughness: 0.05, clearcoat: 1, metalness: 0.2 });
-  const lens = new MeshPhysicalMaterial({ color: new Color('#1d2a38'), roughness: 0.08, clearcoat: 1, metalness: 0.4 });
+  const flash = new MeshStandardMaterial({ color: new Color('#e7e07a'), roughness: 0.5 });
 
   const uniforms = { uMapB: { value: textures[1] }, uProgress: { value: 0 } };
   const screenMat = new MeshPhysicalMaterial({
@@ -248,34 +256,51 @@ export async function mountTerminal(stage, {
   if (finePointer && !reduced) {
     // kept subtle: a glint, not a wash (at 1.7 the whole screen went milky)
     addSheen(body, 14, 0.18);       // satin plastic: a wide, soft glow
+    addSheen(bodyGloss, 20, 0.22);
     addSheen(dark, 36, 0.35);
+    addSheen(black, 70, 0.5);       // the black glass around the screen
     addSheen(screenMat, 70, 0.55);  // glass: a tighter streak that reads on the dark screen
     addSheen(glass, 70, 0.5);
   }
 
+  // material names from evotor6 2026.blend
   const byMaterial = {
-    Plastic: body, Black_Plastic: dark, Rubber: rubber, 'mat_2.001': accent,
-    Glass: glass, Black_Glass: glass, 'Glass.001': lens,
+    'Rough Plastic': body, 'Smooth Plastic': bodyGloss, 'Black Plastic': dark, Black: black,
+    Rubber: rubber, 'Scan Button': accent, 'Evotor Logo': logo, Metal: metal,
+    Glass: glass, 'Flash Dot': flash, 'Flash Background': metal, Sign: body,
   };
 
   const model = gltf.scene;
+  let screenMesh = null;
   model.traverse((o) => {
     if (!o.isMesh) return;
-    if (/FRONT_SCREEN/.test(o.name) || /FRONT_SCREEN/.test(o.parent?.name)) {
+    if (o.name === '_Screen') {
       planarScreenUV(o.geometry);
       o.material = screenMat;
+      screenMesh = o;
       return;
     }
+    // the cover glass over the screen is a transmissive layer in Blender; opaque here it would hide the screen
+    if (o.name === '_Screen_Glass') { o.visible = false; return; }
     o.material = byMaterial[o.material?.name] || body;
   });
+  // The model is exported double-sided (Blender draws both faces), and some faces point inward —
+  // the screen plane included. Single-sided they vanish and read as holes.
+  for (const m of new Set([...Object.values(byMaterial), screenMat])) m.side = DoubleSide;
 
-  // center, lay the screen toward the camera (+Y → +Z) and scale to ~2.6 units tall
-  const box = new Box3().setFromObject(model);
+  // In the model the device sits on its base and the screen leans back ~13°.
+  // Level it so the screen faces +Y, then lay it toward the camera (+Y → +Z) and scale to ~2.6 units tall.
+  const level = new Group();
+  level.add(model);
+  model.updateMatrixWorld(true);
+  level.quaternion.setFromUnitVectors(screenNormal(screenMesh), new Vector3(0, 1, 0));
+  level.updateMatrixWorld(true);
+  const box = new Box3().setFromObject(level);
   const center = box.getCenter(new Vector3());
   const size = box.getSize(new Vector3());
-  model.position.sub(center);
+  level.position.sub(center);
   const oriented = new Group();
-  oriented.add(model);
+  oriented.add(level);
   oriented.rotation.x = Math.PI / 2;
   oriented.scale.setScalar(2.6 / size.z);
 
@@ -585,7 +610,23 @@ function wrapNear(a) {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
-/** The screen mesh ships without UVs: project its local X/Z extent onto 0..1 (top of the device = top of the image). */
+/** Outward normal of the screen in model space (area-weighted; the screen faces up, +Y). */
+function screenNormal(mesh) {
+  const pos = mesh.geometry.attributes.position;
+  const idx = mesh.geometry.index;
+  const a = new Vector3(), b = new Vector3(), c = new Vector3(), n = new Vector3();
+  const count = idx ? idx.count : pos.count;
+  for (let i = 0; i < count; i += 3) {
+    a.fromBufferAttribute(pos, idx ? idx.getX(i) : i).applyMatrix4(mesh.matrixWorld);
+    b.fromBufferAttribute(pos, idx ? idx.getX(i + 1) : i + 1).applyMatrix4(mesh.matrixWorld);
+    c.fromBufferAttribute(pos, idx ? idx.getX(i + 2) : i + 2).applyMatrix4(mesh.matrixWorld);
+    n.add(b.sub(a).cross(c.sub(a))); // length = 2 × area
+  }
+  n.normalize();
+  return n.y < 0 ? n.negate() : n;
+}
+
+/** The meshopt build drops the screen's UVs: project its local X/Z extent onto 0..1 (top of the device = top of the image). */
 function planarScreenUV(geometry) {
   const pos = geometry.attributes.position;
   geometry.computeBoundingBox();

@@ -7,10 +7,10 @@ import {
    Rig-local units (the device is ~2.6 tall, screen toward +Z, printer cover on the back, −Z).
    The strip is rebuilt on the CPU when its length changes: 96 rows × 7 columns is nothing. */
 
-// the printer's paper slot: a narrow groove between the body and the cover (z −0.183…−0.208,
-// x −0.37…+0.42, floor at y ≈ 1.1, lips at y ≈ 1.25), measured by raycasting the model.
-// The paper starts below the lips, so it visibly comes out of the groove.
-const SLOT = { x: 0.025, y: 1.12, z: -0.196 };
+// the printer's paper slot: a narrow gap between the cover and the paper cutter (z −0.2007…−0.1963,
+// x −0.45…+0.45, open deep inside, lips at y ≈ 1.247 / 1.257), measured by raycasting the model.
+// The paper starts below the lips, so it visibly comes out of the slot.
+const SLOT = { x: 0, y: 1.12, z: -0.1985 };
 const LIP = 0.14;                   // paper hidden inside the slot before it clears the lips
 const WIDTH = 0.72;                 // ≈ 2/3 of the device width, as on the real Evotor
 const MAX_LEN = 1.55 + LIP;         // visible part: never longer than ~60% of the device
