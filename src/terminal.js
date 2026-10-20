@@ -233,6 +233,9 @@ export async function mountTerminal(stage, {
   const screenMat = new MeshPhysicalMaterial({
     color: new Color('#000000'), roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05,
     emissive: new Color('#ffffff'), emissiveIntensity: 1, emissiveMap: textures[0],
+    // the screen floats only ~0.1 mm over the black glass behind it (0.04 mm at the top-right corner,
+    // the two are tilted slightly differently): without an offset the glass z-fights through it there
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
   });
   screenMat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
